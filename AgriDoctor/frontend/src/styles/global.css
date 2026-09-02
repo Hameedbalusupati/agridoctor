@@ -321,6 +321,14 @@ button {
   margin: 0.65rem 0 0;
 }
 
+.soil-guide a {
+  display: inline-block;
+  margin-top: 0.65rem;
+  color: var(--primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
 .scan-insights {
   padding: 1.4rem;
 }

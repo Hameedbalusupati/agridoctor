@@ -252,7 +252,7 @@ function DashboardPage() {
 
   const handleSoilChange = (event) => {
     const { name, value } = event.target;
-    setSoilForm((current) => ({ ...current, [name]: Number(value) }));
+    setSoilForm((current) => ({ ...current, [name]: value === '' ? '' : Number(value) }));
   };
 
   const handleCropChange = (event) => {
@@ -262,6 +262,10 @@ function DashboardPage() {
 
   const handleSoilSubmit = async (event) => {
     event.preventDefault();
+    if (Object.values(soilForm).some((value) => value === '')) {
+      setError('Enter all soil values from a laboratory report before analyzing.');
+      return;
+    }
     setError('');
     setLoadingAction('soil');
 
@@ -434,6 +438,7 @@ function DashboardPage() {
             <p>Take a soil sample to your nearest government soil-testing laboratory or agriculture office and ask for a Soil Health Card.</p>
             <p>Copy N, P, and K in kg/ha, pH as shown, moisture as a percentage, temperature in °C, and recent rainfall in mm.</p>
             <p>Do not guess these values. If you do not have a report, leave this analysis until your soil is tested.</p>
+            <a href="https://soilhealth.dac.gov.in/" target="_blank" rel="noreferrer">Open Soil Health Card portal</a>
           </details>
           <div className="two-col">
             <label>Nitrogen (kg/ha)<input name="nitrogen" type="number" min="0" value={soilForm.nitrogen} onChange={handleSoilChange} required /></label>
