@@ -511,19 +511,17 @@ function DashboardPage() {
               <p><strong>Disease:</strong> {diseaseResult.disease}</p>
               <p><strong>Confidence:</strong> {diseaseResult.confidence}</p>
               <p><strong>Severity:</strong> {diseaseResult.severity}</p>
-              {diseaseResult.treatments?.length > 0 && (
-                <div className="treatment-list">
-                  <h4>Pesticides for {diseaseResult.disease}</h4>
-                  {diseaseResult.treatments.map((treatment) => (
-                    <div className="treatment-item" key={`${treatment.active_ingredient}-${treatment.product_name}`}>
-                      <strong>{treatment.product_name}</strong>
-                      <span>Active ingredient: {treatment.active_ingredient}</span>
-                      <small>{treatment.application_guidance}</small>
-                    </div>
-                  ))}
-                  <small className="treatment-warning">Verify the product label and local agricultural guidance before spraying.</small>
-                </div>
-              )}
+              <div className="treatment-list">
+                <h4>Pesticides for {diseaseResult.disease.replaceAll('_', ' ')}</h4>
+                {diseaseResult.treatments?.length > 0 ? diseaseResult.treatments.map((treatment) => (
+                  <div className="treatment-item" key={`${treatment.active_ingredient}-${treatment.product_name}`}>
+                    <strong>{treatment.product_name}</strong>
+                    <span>Active ingredient: {treatment.active_ingredient}</span>
+                    <small>{treatment.application_guidance}</small>
+                  </div>
+                )) : <p>No pesticide information is available for this disease yet. Consult your local agriculture officer.</p>}
+                {diseaseResult.treatments?.length > 0 && <small className="treatment-warning">Verify the product label and local agricultural guidance before spraying.</small>}
+              </div>
             </div>
           )}
         </form>

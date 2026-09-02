@@ -22,7 +22,7 @@ TREATMENTS = {
 
 
 def get_treatments_for_disease(crop, disease_name):
-    key = (crop.strip().lower(), disease_name.strip().lower())
+    key = (crop.strip().lower(), disease_name.strip().lower().replace("_", " "))
     return [{
         "crop": crop,
         "disease": disease_name,
