@@ -6,6 +6,7 @@ import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import CameraScanner from './components/CameraScanner';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ANDHRA_PRADESH, ANDHRA_PRADESH_DISTRICTS, ANDHRA_PRADESH_LOCATIONS } from './data/andhraPradeshLocations';
 
 function LandingPage() {
   return (
@@ -112,6 +113,16 @@ function RegisterPage() {
     setForm((current) => ({ ...current, [name]: value }));
   };
 
+  const handleLocationChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === 'state' ? { district: '', village: '' } : {}),
+      ...(name === 'district' ? { village: '' } : {}),
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
@@ -156,17 +167,30 @@ function RegisterPage() {
         <div className="two-col">
           <label>
             State
-            <input name="state" value={form.state} onChange={handleChange} required />
+            <select name="state" value={form.state} onChange={handleLocationChange} required>
+              <option value="">Select state</option>
+              <option value={ANDHRA_PRADESH}>{ANDHRA_PRADESH}</option>
+            </select>
           </label>
           <label>
             District
-            <input name="district" value={form.district} onChange={handleChange} required />
+            <select name="district" value={form.district} onChange={handleLocationChange} required disabled={!form.state}>
+              <option value="">Select district</option>
+              {ANDHRA_PRADESH_DISTRICTS.map((district) => (
+                <option key={district} value={district}>{district}</option>
+              ))}
+            </select>
           </label>
         </div>
         <div className="two-col">
           <label>
             Village
-            <input name="village" value={form.village} onChange={handleChange} required />
+            <select name="village" value={form.village} onChange={handleLocationChange} required disabled={!form.district}>
+              <option value="">Select village</option>
+              {(ANDHRA_PRADESH_LOCATIONS[form.district] || []).map((village) => (
+                <option key={village} value={village}>{village}</option>
+              ))}
+            </select>
           </label>
           <label>
             Farm area (acres)
@@ -205,6 +229,8 @@ function DashboardPage() {
   const [soilResult, setSoilResult] = useState(null);
   const [cropResult, setCropResult] = useState(null);
   const [diseaseResult, setDiseaseResult] = useState(null);
+  const [weatherResult, setWeatherResult] = useState(null);
+  const [scanRecommendation, setScanRecommendation] = useState(null);
   const [diseaseFile, setDiseaseFile] = useState(null);
   const [error, setError] = useState('');
   const [loadingAction, setLoadingAction] = useState('');
@@ -272,7 +298,7 @@ function DashboardPage() {
     }
 
     setError('');
-  setLoadingAction('disease');
+    setLoadingAction('disease');
 
     try {
       const formData = new FormData();
@@ -280,7 +306,35 @@ function DashboardPage() {
       const response = await api.post('/disease/predict', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setDiseaseResult(response.data.result);
+      const prediction = response.data.result;
+      setDiseaseResult(prediction);
+      setDashboard((current) => ({ ...current, disease_risk: prediction.weather_risk }));
+
+      const coordinates = await new Promise((resolve) => {
+        if (!navigator.geolocation) {
+          resolve({ lat: 17.3850, lon: 78.4867 });
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
+          () => resolve({ lat: 17.3850, lon: 78.4867 }),
+          { enableHighAccuracy: false, timeout: 5000 }
+        );
+      });
+
+      const weatherResponse = await api.get('/weather/current', { params: coordinates });
+      const weather = weatherResponse.data;
+      setWeatherResult(weather);
+      const recommendationResponse = await api.get('/recommendations', {
+        params: {
+          crop: prediction.crop,
+          disease: prediction.disease,
+          humidity: weather.humidity,
+          forecast: weather.forecast,
+        },
+      });
+      setScanRecommendation(recommendationResponse.data.recommendations?.[0] || null);
+      setDashboard((current) => ({ ...current, weather }));
     } catch (err) {
       setError(err.response?.data?.error || 'Disease scan failed.');
     } finally {
@@ -322,22 +376,78 @@ function DashboardPage() {
         </div>
       </div>
 
+      {(diseaseResult || weatherResult || scanRecommendation) && (
+        <section className="card scan-insights">
+          <div>
+            <p className="eyebrow">Latest scan insights</p>
+            <h3>{diseaseResult ? `${diseaseResult.crop} - ${diseaseResult.disease}` : 'Field report'}</h3>
+          </div>
+          <div className="insight-grid">
+            {diseaseResult && (
+              <div className="insight-panel">
+                <h4>Disease and pesticides</h4>
+                <p><strong>Severity:</strong> {diseaseResult.severity}</p>
+                {diseaseResult.treatments?.map((treatment) => (
+                  <p key={`${treatment.active_ingredient}-${treatment.product_name}`}>
+                    <strong>{treatment.product_name}</strong><br />{treatment.active_ingredient}
+                  </p>
+                ))}
+              </div>
+            )}
+            {weatherResult && (
+              <div className="insight-panel">
+                <h4>Weather report</h4>
+                {weatherResult.available === false ? <p>{weatherResult.message}</p> : (
+                  <>
+                    <p><strong>Condition:</strong> {weatherResult.condition}</p>
+                    <p><strong>Temperature:</strong> {weatherResult.temperature}°C</p>
+                    <p><strong>Humidity:</strong> {weatherResult.humidity}%</p>
+                    <p><strong>Forecast:</strong> {weatherResult.forecast}</p>
+                  </>
+                )}
+              </div>
+            )}
+            {scanRecommendation && (
+              <div className="insight-panel">
+                <h4>Recommendations</h4>
+                {scanRecommendation.recommendation?.map((item) => <p key={item}>{item}</p>)}
+              </div>
+            )}
+            <div className="insight-panel">
+              <h4>Soil analysis</h4>
+              {soilResult ? (
+                <>
+                  <p><strong>Condition:</strong> {soilResult.soil_condition}</p>
+                  <p><strong>Status:</strong> {soilResult.nutrient_status}</p>
+                </>
+              ) : <p>Enter soil readings below to add a soil report. A leaf image cannot measure soil nutrients.</p>}
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="dashboard-grid">
         <form className="card form-card" onSubmit={handleSoilSubmit}>
           <h3>Soil analysis</h3>
+          <details className="soil-guide">
+            <summary>Where can I get these soil values?</summary>
+            <p>Take a soil sample to your nearest government soil-testing laboratory or agriculture office and ask for a Soil Health Card.</p>
+            <p>Copy N, P, and K in kg/ha, pH as shown, moisture as a percentage, temperature in °C, and recent rainfall in mm.</p>
+            <p>Do not guess these values. If you do not have a report, leave this analysis until your soil is tested.</p>
+          </details>
           <div className="two-col">
-            <label>Nitrogen<input name="nitrogen" type="number" value={soilForm.nitrogen} onChange={handleSoilChange} /></label>
-            <label>Phosphorus<input name="phosphorus" type="number" value={soilForm.phosphorus} onChange={handleSoilChange} /></label>
+            <label>Nitrogen (kg/ha)<input name="nitrogen" type="number" min="0" value={soilForm.nitrogen} onChange={handleSoilChange} required /></label>
+            <label>Phosphorus (kg/ha)<input name="phosphorus" type="number" min="0" value={soilForm.phosphorus} onChange={handleSoilChange} required /></label>
           </div>
           <div className="two-col">
-            <label>Potassium<input name="potassium" type="number" value={soilForm.potassium} onChange={handleSoilChange} /></label>
-            <label>pH<input name="ph" type="number" step="0.1" value={soilForm.ph} onChange={handleSoilChange} /></label>
+            <label>Potassium (kg/ha)<input name="potassium" type="number" min="0" value={soilForm.potassium} onChange={handleSoilChange} required /></label>
+            <label>pH<input name="ph" type="number" min="0" max="14" step="0.1" value={soilForm.ph} onChange={handleSoilChange} required /></label>
           </div>
           <div className="two-col">
-            <label>Moisture<input name="moisture" type="number" value={soilForm.moisture} onChange={handleSoilChange} /></label>
-            <label>Temperature<input name="temperature" type="number" value={soilForm.temperature} onChange={handleSoilChange} /></label>
+            <label>Moisture (%)<input name="moisture" type="number" min="0" max="100" value={soilForm.moisture} onChange={handleSoilChange} required /></label>
+            <label>Temperature (°C)<input name="temperature" type="number" value={soilForm.temperature} onChange={handleSoilChange} required /></label>
           </div>
-          <label>Rainfall<input name="rainfall" type="number" value={soilForm.rainfall} onChange={handleSoilChange} /></label>
+          <label>Recent rainfall (mm)<input name="rainfall" type="number" min="0" value={soilForm.rainfall} onChange={handleSoilChange} required /></label>
           <button className="primary-button" type="submit" disabled={loadingAction === 'soil'}>{loadingAction === 'soil' ? 'Analyzing...' : 'Analyze soil'}</button>
           {soilResult && (
             <div className="result-box">
@@ -396,6 +506,19 @@ function DashboardPage() {
               <p><strong>Disease:</strong> {diseaseResult.disease}</p>
               <p><strong>Confidence:</strong> {diseaseResult.confidence}</p>
               <p><strong>Severity:</strong> {diseaseResult.severity}</p>
+              {diseaseResult.treatments?.length > 0 && (
+                <div className="treatment-list">
+                  <h4>Pesticides for {diseaseResult.disease}</h4>
+                  {diseaseResult.treatments.map((treatment) => (
+                    <div className="treatment-item" key={`${treatment.active_ingredient}-${treatment.product_name}`}>
+                      <strong>{treatment.product_name}</strong>
+                      <span>Active ingredient: {treatment.active_ingredient}</span>
+                      <small>{treatment.application_guidance}</small>
+                    </div>
+                  ))}
+                  <small className="treatment-warning">Verify the product label and local agricultural guidance before spraying.</small>
+                </div>
+              )}
             </div>
           )}
         </form>

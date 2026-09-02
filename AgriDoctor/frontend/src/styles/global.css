@@ -39,7 +39,7 @@ a {
   text-decoration: none;
 }
 
-button, input {
+button, input, select {
   font: inherit;
 }
 
@@ -188,13 +188,20 @@ button {
   font-weight: 600;
 }
 
-.form-card input {
+.form-card input,
+.form-card select {
   width: 100%;
   padding: 0.8rem 0.9rem;
   margin-top: 0.35rem;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: #fbfcfb;
+}
+
+.form-card select:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .two-col {
@@ -210,6 +217,38 @@ button {
   padding: 0.7rem 0.9rem;
   border-radius: 10px;
   margin-bottom: 1rem;
+}
+
+.treatment-list {
+  border-top: 1px solid rgba(31, 122, 77, 0.2);
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+}
+
+.treatment-list h4 {
+  margin: 0 0 0.7rem;
+}
+
+.treatment-item {
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 0.8rem;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.treatment-item span,
+.treatment-item small,
+.treatment-warning {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.treatment-warning {
+  display: block;
+  margin-top: 0.4rem;
 }
 
 .dashboard-shell {
@@ -262,6 +301,60 @@ button {
   border: 1px solid #d1ead8;
 }
 
+.soil-guide {
+  margin-bottom: 1rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid #cfe5d6;
+  border-radius: 8px;
+  background: #f4fbf6;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.soil-guide summary {
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.soil-guide p {
+  margin: 0.65rem 0 0;
+}
+
+.scan-insights {
+  padding: 1.4rem;
+}
+
+.scan-insights h3 {
+  margin: 0.15rem 0 1rem;
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.insight-panel {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(237, 248, 241, 0.55);
+}
+
+.insight-panel h4 {
+  margin: 0 0 0.7rem;
+}
+
+.insight-panel p {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+}
+
+.insight-panel p:last-child {
+  margin-bottom: 0;
+}
+
 .admin-shell {
   display: grid;
   gap: 1.5rem;
@@ -312,6 +405,7 @@ button {
   .grid-3,
   .two-col,
   .dashboard-grid,
+  .insight-grid,
   .stats-grid,
   .admin-grid {
     grid-template-columns: 1fr;
