@@ -12,7 +12,7 @@ auth_bp = Blueprint("auth", __name__)
 def register():
     data = request.get_json(silent=True) or {}
     required = ["name", "mobile_number", "email", "password", "state", "district", "village", "farm_area"]
-    missing = [field for field in required if not data.get(field)]
+    missing = [field for field in required if data.get(field) in (None, "")]
     if missing:
         return error_response(f"Missing required fields: {', '.join(missing)}")
     if not validate_email(data["email"]):
